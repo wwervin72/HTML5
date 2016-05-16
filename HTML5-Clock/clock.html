@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<canvas id="plate">
+		画表盘
+	</canvas>
+	<canvas id="needles">
+		画时针
+	</canvas>
+	<script>
+		var plate=document.getElementById('plate');
+		var needles=document.getElementById('needles');
+		needles.setAttribute('style','position:absolute;top:8px;left:8px;');
+		var cntP=plate.getContext('2d');
+		var cntH=needles.getContext('2d');
+		plate.width=800;
+		plate.height=500;
+		needles.width=800;
+		needles.height=500;
+
+		//clock构造函数
+		function drawclock(cnt,radius,platelen,linewidth,numLen,NUMLEN){
+			this.cnt=cnt;
+			this.radius=radius;
+			this.platelen=platelen;
+			this.linewidth=linewidth;
+			this.numLen=numLen;
+			this.NUMLEN=NUMLEN;
+			this.getCalibCoor=function(i){  
+				//获得表盘刻度两端的坐标
+				var X=200+this.radius*Math.sin(6*i*Math.PI/180);
+				var Y=200-this.radius*Math.cos(6*i*Math.PI/180);
+				var x=200+(this.radius-this.platelen)*Math.sin(6*i*Math.PI/180);
+				var y=200-(this.radius-this.platelen)*Math.cos(6*i*Math.PI/180);
+
+				// 获得分针刻度的坐标
+				var numx=200+(this.radius-this.platelen-this.numLen)*Math.sin(6*i*Math.PI/180);
+				var numy=200-(this.radius-this.platelen-this.numLen)*Math.cos(6*i*Math.PI/180);
+				//获得小时数字刻度的坐标
+				var numX=200+(this.radius-this.platelen-this.NUMLEN)*Math.sin(6*i*Math.PI/180);  
+				var numY=200-(this.radius-this.platelen-this.NUMLEN)*Math.cos(6*i*Math.PI/180);
+				return {X:X,Y:Y,x:x,y:y,numx:numx,numy:numy,numX:numX,numY:numY};
+			};
+			this.drawCalibration=function(){ //画刻度
+				for(var i=0,coorObj;i<60;i++){
+					coorObj=this.getCalibCoor(i);
+					this.cnt.beginPath();
+					this.cnt.moveTo(coorObj.X,coorObj.Y);
+					this.cnt.lineTo(coorObj.x,coorObj.y);
+					this.cnt.closePath();
+
+					this.cnt.lineWidth=this.linewidth;
+					this.cnt.strokeStyle='#ddd';
+					i%5==0&&(this.cnt.strokeStyle='#aaa')
+					&&(this.cnt.lineWidth=this.linewidth*2);
+					i%15==0&&(this.cnt.strokeStyle='#999')
+					&&(this.cnt.lineWidth=this.linewidth*3);
+					this.cnt.stroke();
+
+					this.cnt.font='10px Arial';
+					this.cnt.fillStyle='rgba(0,0,0,.2)';
+					this.cnt.fillText(i,coorObj.numx-7,coorObj.numy+3);
+					i%5==0&&(this.cnt.fillStyle='rgba(0,0,0,.5)')
+						&&(this.cnt.font='18px Arial')
+						&&(this.cnt.fillText(i/5,coorObj.numX-5,coorObj.numY+5));
+				}
+			};
+		}
+
+		function clockNeedle(cnt,R,lineWidth,strokeStyle,lineCap,obj){
+			this.R=R;
+			this.cnt=cnt;
+			this.lineWidth=lineWidth;
+			this.strokeStyle=strokeStyle;
+			this.lineCap=lineCap;
+			this.obj=obj;
+			this.getNeedleCoor=function(i){
+				var X=200+this.R*0.8*Math.sin(i); //起点的坐标
+				var Y=200-this.R*0.8*Math.cos(i);
+
+				var x=200-20*Math.sin(i); //终点的坐标
+				var y=200+20*Math.cos(i);
+				return {X:X,Y:Y,x:x,y:y};
+			};
+			this.drawNeedle=function(){
+				// var date=new Date().toString().slice(16,24).split(':');
+				// var base=this.obj>0?60:12;
+				// var angle=date[this.obj]/base*360*Math.PI/180;
+				var d=new Date().getTime();
+				var angle;
+				switch(this.obj){
+					case 0:
+					angle=(d/3600000%24+8)/12*360*Math.PI/180;
+					break;
+					case 1:
+					angle=d/60000%60/60*360*Math.PI/180;
+					break;
+					case 2:
+					angle=d/1000%60/60*360*Math.PI/180;
+					break;
+				}
+				var coorobj=this.getNeedleCoor(angle);
+				this.cnt.beginPath();
+				this.cnt.moveTo(coorobj.x,coorobj.y);
+				this.cnt.lineTo(coorobj.X,coorobj.Y);
+				// this.cnt.closePath();
+
+				this.cnt.lineWidth=this.lineWidth;
+				this.cnt.strokeStyle=this.strokeStyle;
+				this.cnt.lineCap=this.lineCap;
+				this.cnt.stroke();
+			}
+		}
+		var clock=new drawclock(cntP,200,5,1,10,25); //实例化一个表盘对象
+		clock.drawCalibration();
+		function draw(){
+			cntH.clearRect(0,0,needles.width,needles.height);
+			var mzneedle=new clockNeedle(cntH,200,1,'rgba(0,0,0,.5)','round',2);
+			//最后一个参数0代表画时针，1画分针，2画秒针
+			var fzneedle=new clockNeedle(cntH,80,3,'rgba(0,0,0,.4)','round',0);
+			var szneedle=new clockNeedle(cntH,140,2,'rgba(0,0,0,.3)','round',1);
+			mzneedle.drawNeedle();
+			fzneedle.drawNeedle();
+			szneedle.drawNeedle();
+			cntH.arc(200,200,5,0,2*Math.PI);
+			cntH.fillStyle='rgba(0,0,0,.5)';
+			cntH.fill();
+		}
+		draw();
+		setInterval(draw,1);
+	</script>
+</body>
+</html>
